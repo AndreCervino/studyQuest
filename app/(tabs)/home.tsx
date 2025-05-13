@@ -20,7 +20,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 4,
     borderColor: "gray",
-    borderRadius: 20
+    borderRadius: 20,
   },
   mainContainer: {
     width: "90%",

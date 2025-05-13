@@ -4,13 +4,13 @@ export default function Layout() {
   return (
     <Stack
       screenOptions={{
-        headerShown: false 
+        headerShown: false,
       }}
     >
-      <Stack.Screen 
+      <Stack.Screen
         name="home"
         options={{
-          headerShown: false //ocultar en pantalla especifica
+          headerShown: false, //ocultar en pantalla especifica
         }}
       />
     </Stack>
