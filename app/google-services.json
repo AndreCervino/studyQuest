@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "727758275778",
+    "project_id": "studyquest-4952e",
+    "storage_bucket": "studyquest-4952e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:727758275778:android:b02807be8bb88564d8675b",
+        "android_client_info": {
+          "package_name": "com.andrecervino.studyquest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRpXxapNNujAT-eS-xfWiVeYfpP0DdR1w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

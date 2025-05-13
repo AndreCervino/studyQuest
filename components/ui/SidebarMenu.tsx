@@ -88,6 +88,8 @@ const styles = StyleSheet.create({
   },
   sidebar: {
     position: "absolute",
+    justifyContent: "space-evenly",
+    borderRadius: 25,
     top: 100,
     left: 0,
     width: 250,

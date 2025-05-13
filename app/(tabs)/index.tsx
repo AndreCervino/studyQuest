@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import React, { useState } from "react"; // Importar React y useState
 import {
   ActivityIndicator,
   Alert,
@@ -10,145 +10,140 @@ import {
   View,
 } from "react-native";
 
-export default function LoginScreen() {
+// Importamos la función de login y la instancia de auth desde tu archivo de Firebase
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../firebase"; // Asegúrate de que la ruta a tu archivo firebase.ts sea correcta
+
+export default function SimpleLoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Estado para mostrar el indicador de carga
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    // Validación básica
     if (!email || !password) {
-      Alert.alert("Error", "Por favor completa todos los campos");
+      Alert.alert("Error", "Por favor, ingresa correo y contraseña.");
       return;
     }
 
-    setIsLoading(true);
-    // Simulación de autenticación
-    setTimeout(() => {
-      setIsLoading(false);
-      router.push("/home");
-    }, 1500);
+    setIsLoading(true); // Activar indicador de carga
+
+    try {
+      // Intenta iniciar sesión con email y contraseña usando tu instancia 'auth'
+      await signInWithEmailAndPassword(auth, email, password);
+
+      // Si el login es exitoso, Firebase maneja el estado del usuario.
+      // Ahora puedes navegar a la pantalla principal.
+      console.log("Inicio de sesión exitoso!");
+      router.push("/home"); // Redirige al usuario a la ruta /home
+    } catch (error) {
+      // Si hay un error durante el login (ej: credenciales incorrectas, usuario no existe)
+      console.error("Error al iniciar sesión:", error);
+      // Mostrar un mensaje de error al usuario
+      Alert.alert(
+        "Error de inicio de sesión",
+        "Verifica tu correo y contraseña e inténtalo de nuevo."
+        // Puedes añadir detalles del error si quieres, como error.message
+      );
+    } finally {
+      // Esto se ejecuta tanto si hay éxito como si hay error
+      setIsLoading(false); // Desactivar indicador de carga
+    }
   };
 
+  // --- UI de la pantalla de Login ---
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Bienvenido</Text>
-        <Text style={styles.subtitle}>Inicia sesión para continuar</Text>
-      </View>
+      <Text style={styles.title}>Iniciar Sesión</Text>
 
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Correo electrónico</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="tu@email.com"
-          placeholderTextColor="#999"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-        />
-      </View>
+      {/* Campo de Email */}
+      <TextInput
+        style={styles.input}
+        placeholder="Correo electrónico"
+        placeholderTextColor="#999"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        value={email}
+        onChangeText={setEmail} // Actualiza el estado del email al escribir
+      />
 
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Contraseña</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="••••••••"
-          placeholderTextColor="#999"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
-      </View>
+      {/* Campo de Contraseña */}
+      <TextInput
+        style={styles.input}
+        placeholder="Contraseña"
+        placeholderTextColor="#999"
+        secureTextEntry // Oculta la entrada para la contraseña
+        value={password}
+        onChangeText={setPassword} // Actualiza el estado de la contraseña al escribir
+      />
 
+      {/* Botón de Iniciar Sesión */}
       <TouchableOpacity
-        onPress={handleLogin}
-        disabled={isLoading}
-        style={[styles.button, isLoading && styles.buttonDisabled]}
+        style={[styles.button, isLoading && styles.buttonDisabled]} // Estilo para botón deshabilitado
+        onPress={handleLogin} // Llama a la función handleLogin al presionar
+        disabled={isLoading} // Deshabilita el botón mientras carga
       >
+        {/* Muestra indicador de carga si está cargando, de lo contrario muestra texto */}
         {isLoading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.buttonText}>Iniciar sesión</Text>
+          <Text style={styles.buttonText}>Entrar</Text>
         )}
       </TouchableOpacity>
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>¿No tienes cuenta? </Text>
-        <TouchableOpacity onPress={() => router.push("/register" as any)}>
-          <Text style={styles.footerLink}>Regístrate</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Enlace para ir a la pantalla de Registro (Opcional) */}
+      <TouchableOpacity onPress={() => router.push("/register" as any)}>
+        <Text style={styles.registerLink}>¿No tienes cuenta? Regístrate</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
+// --- Estilos básicos ---
 const styles = StyleSheet.create({
   container: {
-    width: "90%",
-    height: "90%",
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
+    flex: 1, // Ocupa todo el espacio disponible
+    justifyContent: "center", // Centra verticalmente
+    alignItems: "center", // Centra horizontalmente
     padding: 20,
-  },
-  header: {
-    marginBottom: 40,
+    backgroundColor: "#f5f5f5", // Un fondo suave
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
-    color: "#333",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#666",
-  },
-  inputContainer: {
     marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
     color: "#333",
-    marginBottom: 8,
   },
   input: {
-    backgroundColor: "#fff",
+    width: "100%", // Ocupa todo el ancho del contenedor padre
     padding: 15,
-    borderRadius: 8,
+    marginBottom: 15,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#ccc",
+    borderRadius: 5,
+    backgroundColor: "#fff",
     fontSize: 16,
   },
   button: {
-    backgroundColor: "#007AFF",
+    width: "100%",
     padding: 15,
-    borderRadius: 8,
-    alignItems: "center",
+    backgroundColor: "#007BFF", // Un color azul para el botón
+    borderRadius: 5,
+    alignItems: "center", // Centra el texto del botón
     marginTop: 10,
   },
   buttonDisabled: {
-    opacity: 0.7,
+    backgroundColor: "#a0a0a0", // Color gris cuando está deshabilitado
   },
   buttonText: {
     color: "#fff",
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "bold",
   },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
+  registerLink: {
     marginTop: 20,
-  },
-  footerText: {
-    color: "#666",
+    color: "#007BFF",
     fontSize: 16,
-  },
-  footerLink: {
-    color: "#007AFF",
-    fontSize: 16,
-    fontWeight: "600",
   },
 });
