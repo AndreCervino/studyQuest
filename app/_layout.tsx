@@ -2,14 +2,14 @@
 import { Redirect, Stack } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native"; // Importa ActivityIndicator y StyleSheet
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 // Importamos la instancia de auth desde tu archivo de Firebase
-import { auth } from "../firebase"; // Asegúrate de que la ruta sea correcta
+// Ajusta la ruta si tu archivo firebase.ts no está en la raíz de 'app'
+import { auth } from "../firebase";
 
 // Importa tus componentes de menú.
-// **Nota:** Estos menús se mostrarán solo cuando el usuario esté autenticado.
-// Las pantallas de login y registro NO tendrán estos menús.
+// Asegúrate de que las rutas a estos componentes sean correctas
 import HeaderMenu from "@/components/ui/HeaderMenu";
 import SidebarMenu from "@/components/ui/SidebarMenu";
 
@@ -37,13 +37,12 @@ export default function RootLayout() {
   }, []); // El array vacío asegura que este efecto solo se ejecute una vez al montar el layout
 
   // --- Lógica de renderizado basada en el estado de autenticación ---
-
   // 1. Si aún estamos verificando el estado inicial (por ejemplo, al abrir la app)
   if (isAuthLoading) {
     // Puedes mostrar una pantalla de carga o un splash screen aquí
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color="#0000ff" />{" "}
         {/* Opcional: texto de carga */}
       </View>
     );
@@ -52,13 +51,26 @@ export default function RootLayout() {
   // 2. Si NO hay usuario autenticado (user es null)
   if (!user) {
     // Renderiza un Stack de navegación que SOLO contiene las pantallas de autenticación.
-    // Cualquier intento de ir a otra ruta (como '/home') será redirigido a '/login'.
+    // Estas rutas están definidas por los archivos dentro de la carpeta (auth).
+    // Cualquier intento de ir a otra ruta (fuera de (auth)) será redirigido a /login.
     return (
       <Stack screenOptions={{ headerShown: false }}>
-        {/* Define tus rutas de login y registro aquí */}
-        <Stack.Screen name="login" /> {/* app/login.tsx */}
-        <Stack.Screen name="register" /> {/* app/register.tsx */}
-        {/* Si intentan acceder a cualquier otra ruta sin estar logueados, redirige a login */}
+        {/*
+          Define las rutas del grupo (auth).
+          Expo Router automáticamente mapea app/(auth)/login.tsx a la ruta '/login'
+          y app/(auth)/register.tsx a la ruta '/register'.
+          Los 'name' en Stack.Screen deben coincidir con los nombres de archivo.
+        */}
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+
+        {/*
+          Esto es una capa adicional de seguridad. Si alguien intenta ir
+          a una ruta *no-auth* (como '/home') mientras no está logueado,
+          el `if (!user)` lo atrapará aquí en el root _layout,
+          y este Redirect lo enviará de vuelta a '/login'.
+          Esto solo se activa si el Stack para rutas *no-auth* (el de abajo)
+          no se renderiza porque el usuario no está logueado.
+        */}
         <Redirect href="/login" />
       </Stack>
     );
@@ -66,23 +78,35 @@ export default function RootLayout() {
 
   // 3. Si SÍ hay usuario autenticado (user es un objeto)
   // Renderiza la estructura principal de la aplicación con los menús y las pestañas/rutas protegidas.
+  // Estas rutas están definidas por los archivos dentro de la carpeta (tabs).
   return (
+    // Este View padre permite superponer el Header y la Sidebar si lo deseas
     <View style={{ flex: 1 }}>
       {/* Los menús se muestran aquí, fuera del Stack principal, como lo tenías.
-          Esto significa que solo se renderizarán si el usuario está logueado. */}
-      <HeaderMenu username={user.email || "Usuario"} />{" "}
-      {/* Usa el email o el nombre de usuario si lo guardas en Auth */}
+          Esto significa que solo se renderizarán si el usuario está logueado.
+          Pasa el username que ahora se puede obtener del objeto 'user' de Firebase. */}
+      <HeaderMenu username={user.email || "Usuario"} />
       <SidebarMenu />
-      {/* Contenido principal de la aplicación.
-          El marginTop debe coincidir con la altura del HeaderMenu para que no quede cubierto */}
+
+      {/* Contenido principal de la aplicación (las pestañas y otras rutas protegidas).
+          El marginTop debe coincidir aproximadamente con la altura total del HeaderMenu
+          para que el contenido no quede oculto detrás de él. */}
       <View style={{ flex: 1, marginTop: 100 }}>
-        {" "}
-        {/* Ajusta 100px según la altura real de tu HeaderMenu */}
-        {/* Este Stack contiene las rutas accesibles una vez que el usuario está logueado */}
+        {/*
+          Este Stack maneja la navegación dentro de la parte autenticada de la app.
+          'name="(tabs)"' le dice a Expo Router que renderice el _layout.tsx
+          dentro de la carpeta app/(tabs), el cual a su vez definirá las pestañas
+          y sus pantallas correspondientes (como home.tsx).
+          No necesitas listar explícitamente home, etc. aquí, ya que el
+          _layout.tsx dentro de (tabs) se encarga de eso.
+        */}
         <Stack>
-          {/* Tu grupo de pestañas u otras rutas protegidas */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          {/* Añade aquí otras pantallas principales si no están dentro de (tabs) */}
+          {/*
+            Si tuvieras otras pantallas protegidas FUERA del grupo (tabs),
+            las listarías aquí:
+            <Stack.Screen name="some-other-protected-screen" options={{ ... }} />
+          */}
         </Stack>
       </View>
     </View>
@@ -97,9 +121,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#f5f5f5", // Un fondo similar al de tus pantallas
   },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 18,
-    color: "#333",
-  },
+  // Si usas un texto de carga, descomenta y ajusta este estilo
+  // loadingText: {
+  //   marginTop: 10,
+  //   fontSize: 18,
+  //   color: "#333",
+  // },
 });
