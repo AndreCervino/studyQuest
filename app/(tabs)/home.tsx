@@ -1,23 +1,29 @@
 import CountdownTimer from "@/components/ui/CountdownTimer";
-import { StyleSheet, View } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 
 export default function HomeScreen() {
-  const handleTimerComplete = () => {
-    console.log("Temporizador completado - Puntos añadidos");
+  const handleTimerComplete = (pointsEarned: number) => {
+    Alert.alert(
+      "¡Temporizador completado!",
+      `Has ganado ${pointsEarned} puntos`,
+      [{ text: "OK" }]
+    );
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.mainContainer}>
         <CountdownTimer
-          initialSeconds={300}
+          initialSeconds={10}
+          pointRate={3}
+          pointQuantity={1}
+          pointProbability={0.5}
           onTimerComplete={handleTimerComplete}
         />
       </View>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -39,5 +45,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 50,
     padding: 20,
+  },
+  configContainer: {
+    marginTop: 20,
+    padding: 10,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 10,
+  },
+  configText: {
+    fontSize: 14,
+    color: "#333",
+    textAlign: "center",
   },
 });

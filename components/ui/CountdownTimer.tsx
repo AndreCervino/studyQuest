@@ -5,15 +5,23 @@ import { auth, db } from "../../firebase";
 
 interface CountdownTimerProps {
   initialSeconds?: number;
-  onTimerComplete?: () => void;
+  pointRate?: number;
+  pointQuantity?: number;
+  pointProbability?: number;
+  onTimerComplete?: (totalPoints: number) => void;
 }
 
 export default function CountdownTimer({
   initialSeconds = 300,
+  pointRate = 3,
+  pointQuantity = 1,
+  pointProbability = 0.5,
   onTimerComplete,
 }: CountdownTimerProps) {
   const [secondsLeft, setSecondsLeft] = useState(initialSeconds);
+  const [pendingPoints, setPendingPoints] = useState(0);
   const intervalRef = useRef<number | null>(null);
+  const lastPointTimeRef = useRef<number>(0);
 
   const addPoints = async (pointsToAdd: number) => {
     if (!auth.currentUser?.uid) return;
@@ -28,12 +36,48 @@ export default function CountdownTimer({
     }
   };
 
+  const tryGivePoints = (currentTime: number) => {
+    if (
+      currentTime % pointRate === 0 &&
+      currentTime !== lastPointTimeRef.current &&
+      Math.random() < pointProbability
+    ) {
+      setPendingPoints((prev) => prev + pointQuantity);
+      lastPointTimeRef.current = currentTime;
+    }
+  };
+
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60)
       .toString()
       .padStart(2, "0");
     const s = (secs % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
+  };
+
+  const startCountdown = () => {
+    stopCountdown();
+    setSecondsLeft(initialSeconds);
+    setPendingPoints(0);
+    lastPointTimeRef.current = 0;
+
+    intervalRef.current = setInterval(() => {
+      setSecondsLeft((prev) => {
+        const newTime = prev - 1;
+        if (newTime > 0) {
+          tryGivePoints(initialSeconds - newTime);
+          return newTime;
+        } else {
+          stopCountdown();
+          // Guardar todos los puntos acumulados al finalizar
+          if (pendingPoints > 0) {
+            addPoints(pendingPoints);
+            onTimerComplete?.(pendingPoints);
+          }
+          return 0;
+        }
+      });
+    }, 1000) as unknown as number;
   };
 
   const stopCountdown = () => {
@@ -43,38 +87,33 @@ export default function CountdownTimer({
     }
   };
 
-  const startCountdown = () => {
-    stopCountdown();
-    setSecondsLeft(initialSeconds);
-
-    intervalRef.current = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          stopCountdown();
-          addPoints(10);
-          onTimerComplete?.();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000) as unknown as number;
-  };
-
   const toggleCountdown = () => {
     if (intervalRef.current !== null) {
       stopCountdown();
+      // Si se detiene manualmente, guardar los puntos acumulados
+      if (pendingPoints > 0) {
+        addPoints(pendingPoints);
+        onTimerComplete?.(pendingPoints);
+      }
     } else {
       startCountdown();
     }
   };
 
   useEffect(() => {
-    return () => stopCountdown();
+    return () => {
+      // Guardar puntos pendientes al desmontar el componente
+      if (pendingPoints > 0) {
+        addPoints(pendingPoints);
+      }
+      stopCountdown();
+    };
   }, []);
 
   return (
     <View style={styles.container}>
       <Text style={styles.timerText}>{formatTime(secondsLeft)}</Text>
+      <Text style={styles.pointsText}>Puntos acumulados: {pendingPoints}</Text>
       <TouchableOpacity style={styles.button} onPress={toggleCountdown}>
         <Text style={styles.buttonText}>
           {intervalRef.current !== null ? "Detener" : "Iniciar"}
@@ -93,8 +132,14 @@ const styles = StyleSheet.create({
     fontSize: 72,
     fontWeight: "bold",
     fontFamily: "monospace",
-    marginBottom: 40,
+    marginBottom: 20,
     color: "#333",
+  },
+  pointsText: {
+    fontSize: 18,
+    color: "#28a745",
+    marginBottom: 20,
+    fontWeight: "bold",
   },
   button: {
     backgroundColor: "#007AFF",
