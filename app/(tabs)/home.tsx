@@ -14,7 +14,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    height: "100%",
+    height: "90%",
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
@@ -30,6 +30,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 50,
     padding: 20,
   },
 });

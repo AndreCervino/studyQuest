@@ -1,19 +1,21 @@
+// app/(tabs)/index.tsx
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   StyleSheet,
-  Text,
+  Text, // Asegúrate de que Text está importado
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 
-// Importamos la función para crear usuario y la instancia de auth
+// Importamos las funciones necesarias de firebase/auth
 import { createUserWithEmailAndPassword } from "firebase/auth";
 // Importamos funciones para interactuar con Firestore
 import { doc, setDoc } from "firebase/firestore";
+
 // Importamos tus instancias de auth y db desde tu archivo de Firebase
 import { auth, db } from "../../firebase"; // Asegúrate de que la ruta sea correcta
 
@@ -35,56 +37,67 @@ export default function RegisterScreen() {
 
     try {
       // PASO 1: Crear el usuario en Firebase Authentication
+      // Esto también loguea al usuario automáticamente
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
         password
       );
-
-      // Si la creación en Auth es exitosa, obtenemos el UID del nuevo usuario
       const uid = userCredential.user.uid;
       console.log("Usuario de Auth creado con UID:", uid);
 
       // PASO 2: Guardar datos adicionales (como el nombre de usuario) en Firestore
-      const userDocRef = doc(db, "users", uid); // Referencia al documento del usuario usando su UID
-
+      // **¡Con tus reglas de prueba actuales, esto debería pasar!**
+      // Si sigue fallando con 400, busca problemas de conexión o el error de UI.
+      const userDocRef = doc(db, "users", uid);
       await setDoc(userDocRef, {
-        email: email, // Puedes guardar el email aquí también si lo necesitas
+        email: email,
         username: username, // ¡Aquí guardamos el nombre de usuario!
-        points: 0, // Inicializa puntos u otros campos
-        upgrades: [], // Inicializa otras listas/arrays
-        createdAt: new Date().toISOString(), // Opcional: marca de tiempo de creación
+        points: 0,
+        upgrades: [],
+        createdAt: new Date().toISOString(),
       });
-
       console.log("Documento de usuario creado en Firestore para UID:", uid);
 
-      // Si ambos pasos fueron exitosos, navega al home (o a donde quieras)
-      // Nota: createUserWithEmailAndPassword también loguea al usuario automáticamente
+      // Si ambos pasos fueron exitosos, navega al home.
+      // Usamos 'replace' para que el usuario no pueda volver a la pantalla de registro
+      // usando el botón de atrás una vez que se registró.
+      // El listener en _layout.tsx también ayudará a la navegación.
       Alert.alert("Éxito", "Usuario registrado correctamente.");
-      router.push("/home"); // Redirige al usuario después de un registro exitoso
+      // Añadimos un pequeño delay para que la alerta se muestre antes de navegar
+      setTimeout(() => {
+        router.replace("/home"); // <--- Usando replace
+      }, 50); // Un delay corto, puedes ajustarlo o eliminarlo si no te gusta la alerta primero
     } catch (error: any) {
-      // Manejo de errores de Firebase (Auth o Firestore)
+      // Manejo de errores
       console.error("Error durante el registro:", error);
-
       let errorMessage = "Ocurrió un error desconocido durante el registro.";
 
-      // Errores comunes de Firebase Authentication
-      if (error.code === "auth/email-already-in-use") {
-        errorMessage = "El correo electrónico ya está en uso.";
-      } else if (error.code === "auth/invalid-email") {
-        errorMessage = "El formato del correo electrónico es inválido.";
-      } else if (error.code === "auth/operation-not-allowed") {
-        // Esto debería manejarse habilitando Email/Password en la consola
-        errorMessage = "Registro con email/contraseña no está habilitado.";
-      } else if (error.code === "auth/weak-password") {
-        errorMessage =
-          "La contraseña es demasiado débil. Intenta una más fuerte.";
+      if (error.code) {
+        // Intenta usar el código de error de Firebase si está disponible
+        if (error.code === "auth/email-already-in-use") {
+          errorMessage = "El correo electrónico ya está en uso.";
+        } else if (error.code === "auth/invalid-email") {
+          errorMessage = "El formato del correo electrónico es inválido.";
+        } else if (error.code === "auth/operation-not-allowed") {
+          errorMessage = "Registro con email/contraseña no está habilitado.";
+        } else if (error.code === "auth/weak-password") {
+          errorMessage =
+            "La contraseña es demasiado débil. Intenta una más fuerte.";
+        } else {
+          // Para otros errores de Firebase no manejados explícitamente
+          errorMessage = `Error de Firebase: ${error.message}`;
+        }
+      } else if (error.message) {
+        // Si no hay código, usa el mensaje general del error
+        errorMessage = `Error: ${error.message}`;
       }
-      // Otros posibles errores de conexión o Firestore
 
       Alert.alert("Error de registro", errorMessage);
+
+      // Considera la lógica para desloguear si falla el setDoc si es importante para ti
+      // (Ver comentario en mi respuesta anterior)
     } finally {
-      // Esto se ejecuta tanto si hay éxito como si hay error
       setIsLoading(false); // Desactivar indicador de carga
     }
   };
@@ -99,9 +112,9 @@ export default function RegisterScreen() {
         style={styles.input}
         placeholder="Nombre de usuario"
         placeholderTextColor="#999"
-        autoCapitalize="none" // Los nombres de usuario suelen ser sin mayúsculas
+        autoCapitalize="none"
         value={username}
-        onChangeText={setUsername} // Actualiza el estado del nombre de usuario
+        onChangeText={setUsername}
       />
 
       {/* Campo de Email */}
@@ -138,19 +151,21 @@ export default function RegisterScreen() {
         )}
       </TouchableOpacity>
 
-      {/* Enlace para ir a la pantalla de Login */}
+      {/* POSIBLE CORRECCIÓN AL Unexpected text node */}
+      {/* Asegúrate de que todo el texto esté dentro de <Text> */}
       <View style={styles.footer}>
+        {/* Esta es una forma común y segura de estructurar esto */}
         <Text style={styles.footerText}>¿Ya tienes cuenta? </Text>
-        {/* Usamos router.push para navegar a la ruta de login */}
         <TouchableOpacity onPress={() => router.push("/login" as any)}>
           <Text style={styles.footerLink}>Inicia sesión</Text>
         </TouchableOpacity>
       </View>
+      {/* O si el texto estaba suelto en otra parte, encuéntralo y envuélvelo en <Text> */}
     </View>
   );
 }
 
-// --- Estilos (puedes reutilizar o adaptar los de tu LoginScreen) ---
+// --- Estilos ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -192,7 +207,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   footer: {
-    flexDirection: "row",
+    flexDirection: "row", // Para que el texto y el enlace estén en línea
     justifyContent: "center",
     marginTop: 20,
   },
@@ -201,8 +216,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   footerLink: {
-    color: "#007BFF",
+    color: "#007BFF", // Color azul para enlaces
     fontSize: 16,
     fontWeight: "600",
+    // Añade un pequeño margen si es necesario para separarlo del texto anterior
+    marginLeft: 5,
   },
 });
