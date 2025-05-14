@@ -1,15 +1,32 @@
+import { doc, increment, updateDoc } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { auth, db } from "../../firebase";
 
 interface CountdownTimerProps {
   initialSeconds?: number;
+  onTimerComplete?: () => void;
 }
 
 export default function CountdownTimer({
   initialSeconds = 300,
+  onTimerComplete,
 }: CountdownTimerProps) {
   const [secondsLeft, setSecondsLeft] = useState(initialSeconds);
   const intervalRef = useRef<number | null>(null);
+
+  const addPoints = async (pointsToAdd: number) => {
+    if (!auth.currentUser?.uid) return;
+
+    const userDocRef = doc(db, "users", auth.currentUser.uid);
+    try {
+      await updateDoc(userDocRef, {
+        points: increment(pointsToAdd),
+      });
+    } catch (error) {
+      console.error("Error updating points:", error);
+    }
+  };
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60)
@@ -20,11 +37,10 @@ export default function CountdownTimer({
   };
 
   const stopCountdown = () => {
-    if (intervalRef.current !== null) {
+    if (intervalRef.current != null) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    setSecondsLeft(0);
   };
 
   const startCountdown = () => {
@@ -35,6 +51,8 @@ export default function CountdownTimer({
       setSecondsLeft((prev) => {
         if (prev <= 1) {
           stopCountdown();
+          addPoints(10);
+          onTimerComplete?.();
           return 0;
         }
         return prev - 1;

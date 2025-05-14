@@ -2,10 +2,17 @@ import CountdownTimer from "@/components/ui/CountdownTimer";
 import { StyleSheet, View } from "react-native";
 
 export default function HomeScreen() {
+  const handleTimerComplete = () => {
+    console.log("Temporizador completado - Puntos añadidos");
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.mainContainer}>
-        <CountdownTimer initialSeconds={300} />
+        <CountdownTimer
+          initialSeconds={300}
+          onTimerComplete={handleTimerComplete}
+        />
       </View>
     </View>
   );

@@ -1,58 +1,49 @@
-// components/ui/HeaderMenu.tsx
-import { useRouter } from "expo-router"; // Importamos useRouter
-import { signOut } from "firebase/auth"; // Importamos la función signOut
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native"; // Importamos TouchableOpacity y Alert
-import { auth } from "../../firebase"; // Importamos tu instancia de auth
+import { useRouter } from "expo-router";
+import { signOut } from "firebase/auth";
+import { doc, onSnapshot } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { auth, db } from "../../firebase";
 
 interface HeaderMenuProps {
-  username: string; // Prop para mostrar el nombre de usuario
+  username: string;
 }
 
 export default function HeaderMenu({ username }: HeaderMenuProps) {
-  const router = useRouter(); // Inicializamos el hook useRouter
+  const router = useRouter();
+  const [points, setPoints] = useState<number>(0);
 
-  // Función asíncrona para manejar el cierre de sesión
+  useEffect(() => {
+    if (!auth.currentUser?.uid) return;
+
+    const userDocRef = doc(db, "users", auth.currentUser.uid);
+    const unsubscribe = onSnapshot(userDocRef, (doc) => {
+      const userData = doc.data();
+      setPoints(userData?.points || 0);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const handleLogout = async () => {
     try {
-      // Llamamos a la función signOut de Firebase
       await signOut(auth);
-      console.log("Sesión cerrada exitosamente.");
-
-      // Firebase Auth automáticamente actualizará el estado de autenticación,
-      // lo cual será detectado por el listener en _layout.tsx.
-      // El _layout.tsx, al ver que no hay usuario logueado, redirigirá al login.
-      // Sin embargo, para asegurar una transición inmediata y limpiar el historial,
-      // podemos navegar explícitamente al login aquí también.
-      // Usamos 'replace' para que no se pueda volver atrás a la pantalla logueada.
-      router.replace("/login"); // Reemplazamos la ruta actual con la de login
-    } catch (error: any) {
-      // Manejo de errores durante el cierre de sesión (menos común, pero posible)
-      console.error("Error al cerrar sesión:", error);
-      Alert.alert("Error", "No se pudo cerrar la sesión. Inténtalo de nuevo.");
+      router.replace("/login");
+    } catch (error) {
+      Alert.alert("Error", "No se pudo cerrar sesión.");
     }
   };
 
   return (
-    // Añadimos el estilo headerContainer al container principal si quieres controlar su zIndex
     <View style={[styles.container, styles.headerContainer]}>
-      {/* Círculo vacío izquierdo (quizás para un avatar o icono) */}
       <View style={styles.circle} />
-
-      {/* Círculo con username */}
-      {/* Cambiamos este a View ya que el TouchableOpacity será el botón de logout */}
-      <View style={styles.square}>
-        {/* Podrías mostrar el nombre de usuario aquí si quieres */}
+      <View style={styles.userInfo}>
         <Text style={styles.usernameText}>{username}</Text>
+        <Text style={styles.pointsText}>{points} pts</Text>
       </View>
-
-      {/* Espacio flexible para empujar el botón a la derecha */}
-      <View style={styles.spacer}></View>
-
-      {/* Círculo vacío derecho (este será el botón de Logout) */}
-      {/* Envolvemos el contenido del círculo en un TouchableOpacity */}
+      <View style={styles.spacer} />
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutButtonText}>Salir</Text>{" "}
-        {/* Texto del botón */}
+        <Text style={styles.logoutButtonText}>Salir</Text>
       </TouchableOpacity>
     </View>
   );
@@ -61,71 +52,59 @@ export default function HeaderMenu({ username }: HeaderMenuProps) {
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    justifyContent: "flex-start", // Alinea los elementos al inicio
+    justifyContent: "flex-start",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
-    width: "100%", // Asegura que ocupe todo el ancho
+    width: "100%",
   },
   headerContainer: {
-    // Estilo para controlar el zIndex si es necesario
-    zIndex: 100, // Asegura que el header esté sobre la sidebar u otro contenido
-    // Es posible que necesites un 'position: 'absolute'' o similar dependiendo del layout padre
-    position: "absolute", // O 'relative', ajusta según la necesidad de tu layout
+    zIndex: 100,
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
   },
-  square: {
-    // Reutilizamos el estilo square, aunque su contenido sea solo texto
-    minWidth: 40,
-    minHeight: 40,
-    padding: 5,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: "#007AFF",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10, // Añadido margen a la derecha para separar del spacer
-  },
   circle: {
-    // Reutilizamos el estilo circle
-    width: 50, // Ajustado un poco el tamaño para el header
-    height: 50,
-    borderRadius: 25, // Hacerlo circular
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 2,
     borderColor: "#007AFF",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10, // Añadido margen a la derecha
+    marginRight: 10,
   },
-  spacer: {
-    flex: 1, // Usa flex: 1 para tomar el espacio restante y empujar el botón a la derecha
+  userInfo: {
+    alignItems: "flex-start",
   },
   usernameText: {
     fontSize: 16,
     fontWeight: "600",
     color: "#007AFF",
   },
-  // Nuevo estilo para el botón de logout (el círculo de la derecha)
+  pointsText: {
+    fontSize: 14,
+    color: "#28a745",
+    fontWeight: "bold",
+  },
+  spacer: {
+    flex: 1,
+  },
   logoutButton: {
-    minWidth: 60, // Ajusta según el texto "Salir" o "Logout"
-    minHeight: 40,
-    paddingHorizontal: 10, // Ajusta el padding horizontal
-    paddingVertical: 5, // Ajusta el padding vertical
-    borderRadius: 20, // Bordes redondeados
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 2,
-    borderColor: "#FF0000", // Color rojo para salir
-    backgroundColor: "#FF4444", // Un fondo rojo suave (opcional)
+    borderColor: "#FF0000",
+    backgroundColor: "#FF4444",
     justifyContent: "center",
     alignItems: "center",
   },
   logoutButtonText: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#fff", // Texto blanco para contraste con el fondo rojo
+    color: "#fff",
   },
 });
