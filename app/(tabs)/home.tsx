@@ -1,19 +1,20 @@
 import CountdownTimer from "@/components/ui/CountdownTimer";
+
 import { Alert, StyleSheet, View } from "react-native";
 
 export default function HomeScreen() {
   const handleTimerComplete = (pointsEarned: number) => {
-    Alert.alert(
-      "¡Temporizador completado!",
-      `Has ganado ${pointsEarned} puntos`,
-      [{ text: "OK" }]
-    );
+    Alert.alert("¡Temporizador completado!", `+ ${pointsEarned} puntos`, [
+      { text: "OK" },
+    ]);
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.mainContainer}>
         <CountdownTimer
+          // -------- variables para upgrades(TODO) ------------
+
           initialSeconds={10}
           pointRate={3}
           pointQuantity={1}

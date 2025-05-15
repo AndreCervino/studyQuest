@@ -69,7 +69,7 @@ export default function CountdownTimer({
           return newTime;
         } else {
           stopCountdown();
-          // Guardar todos los puntos acumulados al finalizar
+          // garda puntos cando finaliza timer
           if (pendingPoints > 0) {
             addPoints(pendingPoints);
             onTimerComplete?.(pendingPoints);
@@ -90,7 +90,7 @@ export default function CountdownTimer({
   const toggleCountdown = () => {
     if (intervalRef.current !== null) {
       stopCountdown();
-      // Si se detiene manualmente, guardar los puntos acumulados
+      //  --------- gardar puntos acumulados se se para timer manualmente -------
       if (pendingPoints > 0) {
         addPoints(pendingPoints);
         onTimerComplete?.(pendingPoints);
@@ -102,7 +102,6 @@ export default function CountdownTimer({
 
   useEffect(() => {
     return () => {
-      // Guardar puntos pendientes al desmontar el componente
       if (pendingPoints > 0) {
         addPoints(pendingPoints);
       }

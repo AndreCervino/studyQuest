@@ -1,4 +1,6 @@
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
+
 import {
   Animated,
   Dimensions,
@@ -9,12 +11,12 @@ import {
 
 const { height } = Dimensions.get("window");
 
-// Solución para el error de tipo con Animated.View
 const AnimatedView = Animated.View as unknown as React.ComponentType<any>;
 
 export default function SidebarMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const slideAnim = useState(new Animated.Value(-250))[0];
+  const router = useRouter(); // Añadir esto
 
   const toggleMenu = () => {
     Animated.timing(slideAnim, {
@@ -25,16 +27,23 @@ export default function SidebarMenu() {
     setIsOpen(!isOpen);
   };
 
-  const menuOptions = ["Screen1", "Screen2", "Screen3", "Screen4"];
+  const handleNavigation = (screen: string) => {
+    if (screen === "Tienda") {
+      router.push("/shop");
+    } else {
+      console.log(`Ir a ${screen}`);
+    }
+    toggleMenu();
+  };
+
+  const menuOptions = ["Tienda", "Screen2", "Screen3", "Screen4"];
 
   return (
     <>
-      {/* Botón para abrir/cerrar el menú */}
       <TouchableOpacity style={styles.toggleButton} onPress={toggleMenu}>
         <Text style={styles.toggleIcon}>{isOpen ? "✕" : "☰"}</Text>
       </TouchableOpacity>
 
-      {/* Menú lateral animado */}
       <AnimatedView
         style={[
           styles.sidebar,
@@ -47,17 +56,13 @@ export default function SidebarMenu() {
           <TouchableOpacity
             key={index}
             style={styles.menuItem}
-            onPress={() => {
-              console.log(`Ir a ${option}`);
-              toggleMenu();
-            }}
+            onPress={() => handleNavigation(option)}
           >
             <Text style={styles.menuText}>{option}</Text>
           </TouchableOpacity>
         ))}
       </AnimatedView>
 
-      {/* Overlay para cerrar el menú al hacer clic fuera */}
       {isOpen && (
         <TouchableOpacity
           style={styles.overlay}
@@ -72,7 +77,7 @@ export default function SidebarMenu() {
 const styles = StyleSheet.create({
   toggleButton: {
     position: "absolute",
-    top: 110,
+    top: 100,
     left: 20,
     zIndex: 100,
     backgroundColor: "#007AFF",
