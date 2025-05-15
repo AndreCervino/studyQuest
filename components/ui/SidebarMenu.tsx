@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     top: 100,
     left: 0,
     width: 250,
-    height: height - 100,
+    height: "85%",
     backgroundColor: "white",
     zIndex: 90,
     paddingTop: 20,
