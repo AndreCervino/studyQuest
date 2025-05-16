@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   },
   mainContainer: {
     width: "90%",
-    height: "90%",
+    height: "80%",
     marginBottom: 10,
     borderWidth: 4,
     borderColor: "#007AFF",

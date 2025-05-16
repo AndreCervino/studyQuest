@@ -15,7 +15,7 @@ export default function CountdownTimer({
   initialSeconds = 300,
   pointRate = 3,
   pointQuantity = 1,
-  pointProbability = 0.5,
+  pointProbability = 1,
   onTimerComplete,
 }: CountdownTimerProps) {
   const [secondsLeft, setSecondsLeft] = useState(initialSeconds);
@@ -31,6 +31,7 @@ export default function CountdownTimer({
       await updateDoc(userDocRef, {
         points: increment(pointsToAdd),
       });
+      setPendingPoints(0); // Resetear puntos pendientes después de sumarlos
     } catch (error) {
       console.error("Error updating points:", error);
     }
@@ -69,11 +70,8 @@ export default function CountdownTimer({
           return newTime;
         } else {
           stopCountdown();
-          // garda puntos cando finaliza timer
-          if (pendingPoints > 0) {
-            addPoints(pendingPoints);
-            onTimerComplete?.(pendingPoints);
-          }
+          // Mostrar alerta pero NO sumar puntos todavía
+          onTimerComplete?.(pendingPoints);
           return 0;
         }
       });
@@ -90,13 +88,25 @@ export default function CountdownTimer({
   const toggleCountdown = () => {
     if (intervalRef.current !== null) {
       stopCountdown();
-      //  --------- gardar puntos acumulados se se para timer manualmente -------
-      if (pendingPoints > 0) {
-        addPoints(pendingPoints);
-        onTimerComplete?.(pendingPoints);
-      }
+      // Mostrar alerta pero NO sumar puntos automáticamente
+      onTimerComplete?.(pendingPoints);
     } else {
       startCountdown();
+    }
+  };
+
+  // --- Función para confirmar los puntos acumulados ---
+  const confirmPoints = async () => {
+    if (pendingPoints > 0 && auth.currentUser?.uid) {
+      try {
+        const userDocRef = doc(db, "users", auth.currentUser.uid);
+        await updateDoc(userDocRef, {
+          points: increment(pendingPoints),
+        });
+        setPendingPoints(0); // Resetear puntos pendientes
+      } catch (error) {
+        console.error("Error al confirmar puntos:", error);
+      }
     }
   };
 
@@ -111,13 +121,26 @@ export default function CountdownTimer({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.timerText}>{formatTime(secondsLeft)}</Text>
+      <Text style={styles.timeText}>{formatTime(secondsLeft)}</Text>
       <Text style={styles.pointsText}>Puntos acumulados: {pendingPoints}</Text>
       <TouchableOpacity style={styles.button} onPress={toggleCountdown}>
         <Text style={styles.buttonText}>
           {intervalRef.current !== null ? "Detener" : "Iniciar"}
         </Text>
       </TouchableOpacity>
+
+      {/* Botón para confirmar puntos (solo visible cuando hay puntos pendientes y el timer está parado) */}
+      {pendingPoints > 0 && intervalRef.current === null && (
+        <TouchableOpacity
+          style={[styles.button, styles.confirmButton]}
+          onPress={confirmPoints}
+        >
+          <Text style={styles.buttonText}>¡Tómate un descanso!</Text>
+          <Text style={styles.buttonText}>
+            Has ganado {pendingPoints} puntos
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -127,7 +150,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  timerText: {
+  timeText: {
     fontSize: 72,
     fontWeight: "bold",
     fontFamily: "monospace",
@@ -153,5 +176,9 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 24,
     fontWeight: "600",
+  },
+  confirmButton: {
+    backgroundColor: "#28a745", // Verde para diferenciar la acción de confirmación
+    marginTop: 10,
   },
 });

@@ -1,21 +1,30 @@
 import CountdownTimer from "@/components/ui/CountdownTimer";
-
 import { Alert, StyleSheet, View } from "react-native";
 
 export default function HomeScreen() {
+  // --- Maneja la finalización del temporizador ---
   const handleTimerComplete = (pointsEarned: number) => {
-    Alert.alert("¡Temporizador completado!", `+ ${pointsEarned} puntos`, [
-      { text: "OK" },
-    ]);
+    Alert.alert(
+      "¡Temporizador completado!",
+      `Tómate un descanso! Has ganado ${pointsEarned} puntos`,
+      [
+        {
+          text: "Aceptar",
+          onPress: () => {
+            // La confirmación real se maneja en el botón del CountdownTimer
+            // Este alert es solo informativo
+          },
+        },
+      ]
+    );
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.mainContainer}>
+        {/* --- Componente del temporizador con todas sus props --- */}
         <CountdownTimer
-          // -------- variables para upgrades(TODO) ------------
-
-          initialSeconds={10}
+          initialSeconds={20}
           pointRate={3}
           pointQuantity={1}
           pointProbability={0.5}
@@ -25,6 +34,7 @@ export default function HomeScreen() {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -38,7 +48,7 @@ const styles = StyleSheet.create({
   },
   mainContainer: {
     width: "90%",
-    height: "90%",
+    height: "80%",
     borderWidth: 4,
     borderColor: "#007AFF",
     borderRadius: 20,
