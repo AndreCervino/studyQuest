@@ -58,7 +58,7 @@ export default function RegisterScreen() {
       Alert.alert("Éxito", "Usuario registrado correctamente.");
       // delay para alerta
       setTimeout(() => {
-        router.replace("/home"); // REPLACE
+        router.replace("/(tabs)/home");
       }, 50);
     } catch (error: any) {
       // --- Errores ---

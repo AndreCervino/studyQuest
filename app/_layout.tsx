@@ -1,78 +1,85 @@
-import { Redirect, Stack } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router"; // Importa useRouter
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-
-// Impor instancia  auth dende archivo de Firebase
-
 import { auth } from "../firebase";
 
-// Import componentes de menu
-
-import HeaderMenu from "@/components/ui/HeaderMenu";
-import SidebarMenu from "@/components/ui/SidebarMenu";
-
 export default function RootLayout() {
-  // -------------- State para almacenar usuario autenicado por Firebase. 'null' = non hay usuario -----------
-
   const [user, setUser] = useState<any>(null);
-
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const pathname = usePathname();
+  const router = useRouter(); // Obtén la instancia del router
 
   useEffect(() => {
-    //  - ---------  listener cada vez que estado de autenticacion cambia ----------
-
+    console.log("Configurando listener onAuthStateChanged...");
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser); // Actualiza estado local con user de Firebase/'null'
-      setIsAuthLoading(false);
       console.log(
-        "Estado de autenticación cambiado:",
-        firebaseUser ? firebaseUser.uid : "null"
+        "onAuthStateChanged - Estado de autenticación detectado:",
+        firebaseUser?.uid || "null"
       );
+      setUser(firebaseUser);
+      setIsAuthLoading(false);
+
+      // --- LÓGICA DE NAVEGACIÓN PROGRAMÁTICA ---
+      // Si un usuario se autentica y NO está ya en la zona de tabs, redirige.
+      // Usamos router.replace para reemplazar la ruta actual en el historial.
+      if (firebaseUser && !pathname.startsWith("/(tabs)/")) {
+        console.log(
+          "onAuthStateChanged - Usuario autenticado fuera de tabs, redirigiendo a /(tabs)/home"
+        );
+        router.replace("/(tabs)/home");
+      }
+      // Si un usuario NO está autenticado y SÍ está en la zona de tabs, redirige al login.
+      // Esto cubre el caso de que un usuario cierre sesión mientras está en una pantalla de tabs.
+      if (!firebaseUser && pathname.startsWith("/(tabs)/")) {
+        console.log(
+          "onAuthStateChanged - Usuario no autenticado en tabs, redirigiendo a /"
+        ); // O a "/login"
+        // Considera redirigir a "/" o a tu ruta de login específica si no es la raíz.
+        // Para este ejemplo, redirigimos a la raíz que debería llevar al stack (auth).
+        router.replace("/");
+      }
+      // --- FIN LÓGICA DE NAVEGACIÓN PROGRAMÁTICA ---
     });
 
-    // apagar listener
-    return () => unsubscribe();
-  }, []);
+    // Devuelve la función de limpieza para desuscribirse al desmontar
+    return () => {
+      console.log("Desuscribiendo de onAuthStateChanged.");
+      unsubscribe();
+    };
+  }, []); // Dependencias: Array vacío. Este efecto solo se ejecuta una vez al montar.
 
+  // --- Renderizado basado en estados (sin redirecciones declarativas aquí) ---
+
+  // Mostrar indicador de carga mientras se verifica el estado inicial de auth
   if (isAuthLoading) {
-    // TODO:      añadir pantalla de carga aqui(?)
+    console.log("RootLayout - Mostrando pantalla de carga inicial...");
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />{" "}
+        <ActivityIndicator size="large" color="#0000ff" />
       </View>
     );
   }
 
+  // Si no hay usuario autenticado, renderiza el Stack principal (donde debe estar el stack (auth))
   if (!user) {
-    // ----------- se usuario non autenticado mostra solo a pantallas de login/register---------
-    return (
-      <Stack screenOptions={{ headerShown: false }}>
-        {/* rutas de directorio (auth) */}
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-
-        <Redirect href="/login" />
-      </Stack>
+    console.log(
+      "RootLayout - No hay usuario autenticado, renderizando stack principal (auth)..."
     );
+    // Este Stack renderizará lo que esté en app/(auth)/_layout.tsx
+    // Asegúrate de que app/(auth)/_layout.tsx no contenga redirecciones
+    // incondicionales a rutas fuera de (auth).
+    return <Stack screenOptions={{ headerShown: false }} />;
   }
 
-  //----------- se usuario SI esta autenticado mostra pantallas de app --------
-  return (
-    <View style={{ flex: 1 }}>
-      <HeaderMenu username={user.email || "Usuario"} />
-      <SidebarMenu />
-
-      <View style={{ flex: 1, marginTop: 90 }}>
-        {/* rutas de directorio (tabs) */}
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        </Stack>
-      </View>
-    </View>
+  // Si hay usuario autenticado, renderiza el Stack principal (donde debe estar el stack (tabs))
+  // La navegación para ir a /(tabs)/home se maneja programáticamente en el useEffect.
+  console.log(
+    "RootLayout - Usuario autenticado, renderizando stack principal (tabs)..."
   );
+  return <Stack screenOptions={{ headerShown: false }} />; // Este Stack renderizará lo que esté en app/(tabs)/_layout.tsx
 }
 
-// stylesheet de pantalla de carga
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,

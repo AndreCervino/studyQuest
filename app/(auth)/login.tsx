@@ -34,7 +34,6 @@ export default function SimpleLoginScreen() {
       await signInWithEmailAndPassword(auth, email, password);
 
       console.log("Inicio de sesión exitoso!");
-      router.push("/home"); // Navega a /home
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
 
