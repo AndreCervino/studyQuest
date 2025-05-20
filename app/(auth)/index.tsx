@@ -34,6 +34,9 @@ export default function SimpleLoginScreen() {
       await signInWithEmailAndPassword(auth, email, password);
 
       console.log("Inicio de sesión exitoso!");
+      setTimeout(() => {
+        router.replace("/(tabs)");
+      }, 50);
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
 

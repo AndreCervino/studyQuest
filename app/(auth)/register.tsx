@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -58,7 +58,7 @@ export default function RegisterScreen() {
       Alert.alert("Éxito", "Usuario registrado correctamente.");
       // delay para alerta
       setTimeout(() => {
-        router.replace("/(tabs)/home");
+        router.replace("/(tabs)");
       }, 50);
     } catch (error: any) {
       // --- Errores ---
@@ -140,7 +140,7 @@ export default function RegisterScreen() {
       <View style={styles.footer}>
         {/* navega a Login */}
         <Text style={styles.footerText}>¿Ya tienes cuenta? </Text>
-        <TouchableOpacity onPress={() => router.push("/login" as any)}>
+        <TouchableOpacity onPress={() => router.push("/(auth)" as any)}>
           <Text style={styles.footerLink}>Inicia sesión</Text>
         </TouchableOpacity>
       </View>

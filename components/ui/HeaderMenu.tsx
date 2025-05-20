@@ -28,7 +28,7 @@ export default function HeaderMenu({ username }: HeaderMenuProps) {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      router.replace("/login"); // Esto está dentro de (auth)/login.tsx
+      router.replace("/(auth)"); // Esto está dentro de (auth)/login.tsx
     } catch (error) {
       Alert.alert("Error", "No se pudo cerrar sesión.");
     }

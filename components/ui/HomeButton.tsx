@@ -6,15 +6,15 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 export default function HomeButton() {
   const router = useRouter();
 
-  const handleNavigation = (button: string) => {
-    router.push("/home");
+  const handleNavigation = () => {
+    router.push("/(tabs)");
   };
 
   return (
     <View>
       <TouchableOpacity
         style={styles.button}
-        onPress={() => handleNavigation("RETURN")}
+        onPress={() => handleNavigation()}
       >
         <Ionicons name="home-outline" size={20} color="white" />
       </TouchableOpacity>
