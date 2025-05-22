@@ -1,6 +1,6 @@
-import CountdownTimer from "@/components/ui/CountdownTimer"; // Importamos nuestro componente del temporizador
-import { doc, increment, updateDoc } from "firebase/firestore"; // Importamos funciones de Firestore para actualizar el documento
-import React, { useState } from "react"; // Importamos useState para manejar el estado del componente
+import CountdownTimer from "@/components/ui/CountdownTimer";
+import { doc, increment, updateDoc } from "firebase/firestore";
+import React, { useState } from "react";
 import {
   Alert,
   Button,
@@ -9,89 +9,73 @@ import {
   StyleSheet,
   Text,
   View,
-} from "react-native"; // Importamos componentes de React Native (incluyendo Modal y Pressable para los modales)
-import { auth, db } from "../../firebase"; // Importamos las instancias de Firebase auth y db
+} from "react-native";
 
-// Este es el componente principal de la pantalla de inicio, que orquesta el flujo del temporizador y puntos
+// Imports de Firebase
+import { db } from "../../firebase";
+
+//  Import de HOOK useAuth
+import { useAuth } from "./../contexts/AuthContext";
+
 export default function HomeScreen() {
-  // Estado para controlar si el modal de selección de duración es visible
+  // --- uso de HOOK useAuth (estado de autenticación, si es administrador y el estado de carga)---
+
+  const { user, isAdmin, isLoading } = useAuth();
+
   const [isDurationModalVisible, setDurationModalVisible] = useState(false);
-  // Estado para controlar si el modal de puntos ganados es visible
+
   const [isPointsModalVisible, setPointsModalVisible] = useState(false);
-  // Estado para guardar la duración seleccionada por el usuario en segundos.
-  // null indica que no hay ninguna sesión programada/activa en este momento.
+
   const [selectedDurationSeconds, setSelectedDurationSeconds] = useState<
     number | null
   >(null);
-  // Estado para guardar los puntos acumulados en la sesión más reciente que ha terminado (sea por completado o detenido)
+
   const [sessionPointsEarned, setSessionPointsEarned] = useState<number>(0);
 
-  // Esta función es llamada por el componente CountdownTimer cuando la cuenta regresiva llega a cero
-  // o cuando el usuario presiona "Detener" en el temporizador.
   const handleTimerComplete = (pointsEarned: number) => {
     console.log(
       `Sesión del temporizador terminada. Puntos acumulados reportados: ${pointsEarned}`
     );
-    // Guardamos los puntos reportados por el temporizador en el estado local
     setSessionPointsEarned(pointsEarned);
-    // Mostramos el modal de puntos ganados
     setPointsModalVisible(true);
-    // Reseteamos la duración seleccionada. Esto hará que el componente CountdownTimer deje de renderizarse
-    // y vuelva a aparecer el botón "Programar Sesión".
-    setSelectedDurationSeconds(null);
-    // NOTA: En este punto, los puntos AÚN NO se han guardado en Firestore.
-    // Esto ocurrirá solo si el usuario presiona "Aceptar" en el modal de puntos.
+    setSelectedDurationSeconds(null); // reset para sacar button de programar sesion
   };
 
-  // Esta función se llama cuando el usuario selecciona una opción de duración en el modal
+  // funcionalidade de modal de programar sesion
   const handleSelectDuration = (minutes: number) => {
-    const seconds = minutes * 60; // Convertimos los minutos seleccionados a segundos
+    const seconds = minutes * 60;
     console.log(
       `Duración seleccionada: ${minutes} minutos (${seconds} segundos)`
     );
-    // Actualizamos el estado con la duración seleccionada.
-    // Esto hará que el componente CountdownTimer se renderice con esta duración.
-    setSelectedDurationSeconds(seconds);
-    // Cerramos el modal de selección de duración.
+    setSelectedDurationSeconds(seconds); //setea duracion timer
     setDurationModalVisible(false);
-    // El componente CountdownTimer (gracias al useEffect que agregamos) detectará el cambio en initialSeconds,
-    // reseteará su estado interno y, si lo configuraste así, comenzará automáticamente.
-    // Si no configuraste el inicio automático en CountdownTimer, necesitarás un botón "Iniciar" dentro de CountdownTimer
-    // que llame a su función startCountdown después de que se renderice con la nueva initialSeconds.
-    // Con la implementación actual del timer y su useEffect en initialSeconds, si descomentas startCountdown() allí, iniciará automáticamente.
   };
 
-  // Esta función se llama cuando el usuario presiona el botón "Aceptar" en el modal de puntos ganados.
-  // ¡Aquí es donde finalmente interactuamos con Firestore para guardar los puntos!
+  // funcion para recibir puntos con boton Aceptar
   const handleAcceptPoints = async () => {
     console.log(
       `Usuario aceptó los puntos. Sumando ${sessionPointsEarned} a Firestore.`
     );
 
-    // Verificamos que haya un usuario autenticado y que haya puntos para sumar (> 0)
-    if (!auth.currentUser?.uid || sessionPointsEarned <= 0) {
+    // verifica login + puntos a sumar
+
+    if (!user?.uid || sessionPointsEarned <= 0) {
       console.warn(
         "No se pueden sumar puntos: Usuario no autenticado o puntos ganados no positivos."
       );
-      // Cerramos el modal y reseteamos los puntos de la sesión aunque no se hayan guardado
       setPointsModalVisible(false);
       setSessionPointsEarned(0);
       return;
     }
 
-    const userId = auth.currentUser.uid; // Obtenemos el ID del usuario autenticado
-    const userDocRef = doc(db, "users", userId); // Creamos una referencia al documento del usuario en la colección "users"
+    const userId = user.uid; // usa user.uid de hook useAuth
+    const userDocRef = doc(db, "users", userId);
 
     try {
-      // Usamos updateDoc para actualizar el documento.
-      // increment(sessionPointsEarned) es una operación atómica que suma el valor
-      // a la propiedad 'points'. Esto es seguro incluso si el usuario completa
-      // múltiples sesiones rápidamente o en diferentes dispositivos.
       await updateDoc(userDocRef, {
-        points: increment(sessionPointsEarned), // Suma sessionPointsEarned al campo 'points'
+        points: increment(sessionPointsEarned),
       });
       console.log("Puntos actualizados exitosamente en Firestore.");
-      // Gracias al onSnapshot en HeaderMenu, la UI de puntos se actualizará automáticamente.
     } catch (error) {
       console.error("Error al actualizar puntos en Firestore:", error);
       Alert.alert(
@@ -100,140 +84,130 @@ export default function HomeScreen() {
       );
     }
 
-    // Cerramos el modal de puntos ganados después de intentar guardar en Firestore
     setPointsModalVisible(false);
-    // Reseteamos los puntos de la sesión a 0, ya que ya han sido manejados (guardados o con error)
     setSessionPointsEarned(0);
   };
 
+  // ------ carga inicial ---
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Cargando sesión...</Text>
+      </View>
+    );
+  }
+  // --- carga inicial(END) ----
+
   return (
     <View style={styles.container}>
-      {/* mainContainer ahora envuelve todo el contenido principal */}
+      {/* -------------------logica mensaxe admin----------- */}
+      {isAdmin && (
+        <Text style={styles.adminMessage}>
+          🎉 ¡Bienvenido administrador! 🎉
+        </Text>
+      )}
       <View style={styles.mainContainer}>
-        {/* Renderizado condicional: Mostrar el botón "Programar Sesión" O el CountdownTimer */}
-        {/* Si selectedDurationSeconds es null, mostramos el botón de programación */}
+        {/* mostrar el botón "Programar sesion" OR timer */}
         {!selectedDurationSeconds ? (
           <Button
             title="Programar Sesión"
-            onPress={() => setDurationModalVisible(true)} // Al presionar, abrimos el modal de duración
-            color="#007AFF" // Color para el botón
+            onPress={() => setDurationModalVisible(true)}
+            color="#007AFF"
           />
         ) : (
-          /* Si selectedDurationSeconds tiene un valor, mostramos el CountdownTimer */
           <CountdownTimer
-            initialSeconds={selectedDurationSeconds} // Pasamos la duración seleccionada como prop
-            // Puedes pasar otras props al timer si necesitas configurarlas (ej. pointRate, etc.)
-            // pointRate={3}
-            // pointQuantity={1}
-            // pointProbability={0.5}
-            onTimerComplete={handleTimerComplete} // Pasamos la función que se llamará al terminar el timer
+            initialSeconds={selectedDurationSeconds}
+            onTimerComplete={handleTimerComplete}
           />
         )}
 
-        {/* --- Implementación de los Modales --- */}
-
-        {/* Modal para seleccionar la duración de la sesión */}
         <Modal
-          animationType="slide" // Tipo de animación al aparecer
-          transparent={true} // Fondo semi-transparente detrás del modal
-          visible={isDurationModalVisible} // Controla si el modal es visible usando el estado
+          animationType="slide"
+          transparent={true}
+          visible={isDurationModalVisible}
           onRequestClose={() => {
-            // Función opcional para manejar el cierre del modal (ej. con el botón de atrás en Android)
-            setDurationModalVisible(!isDurationModalVisible); // Podrías decidir si esto cancela o solo cierra
+            setDurationModalVisible(!isDurationModalVisible);
           }}
         >
           <View style={styles.centeredView}>
-            {" "}
-            {/* Contenedor para centrar el modal */}
             <View style={styles.modalView}>
-              {" "}
-              {/* El recuadro blanco del modal */}
               <Text style={styles.modalTitle}>Selecciona la duración</Text>
-              {/* Opciones de duración como botones Pressable */}
               <Pressable
                 style={[styles.buttonModal, styles.buttonOption]}
-                onPress={() => handleSelectDuration(20)} // Llama a handleSelectDuration con 20 minutos
+                onPress={() => handleSelectDuration(20)}
               >
                 <Text style={styles.textStyle}>20 minutos</Text>
               </Pressable>
               <Pressable
                 style={[styles.buttonModal, styles.buttonOption]}
-                onPress={() => handleSelectDuration(30)} // Llama a handleSelectDuration con 30 minutos
+                onPress={() => handleSelectDuration(30)}
               >
                 <Text style={styles.textStyle}>30 minutos</Text>
               </Pressable>
               <Pressable
                 style={[styles.buttonModal, styles.buttonOption]}
-                onPress={() => handleSelectDuration(50)} // Llama a handleSelectDuration con 50 minutos
+                onPress={() => handleSelectDuration(50)}
               >
                 <Text style={styles.textStyle}>50 minutos</Text>
               </Pressable>
-              {/* Botón para cancelar la selección */}
               <Pressable
                 style={[styles.buttonModal, styles.buttonClose]}
-                onPress={() => setDurationModalVisible(false)} // Simplemente cierra el modal sin seleccionar duración
+                onPress={() => setDurationModalVisible(false)}
               >
                 <Text style={styles.textStyle}>Cancelar</Text>
               </Pressable>
             </View>
           </View>
+
+          {/* -------------------MODALS---------------------- */}
         </Modal>
 
-        {/* Modal para mostrar los puntos ganados al finalizar el temporizador */}
         <Modal
           animationType="slide"
           transparent={true}
-          visible={isPointsModalVisible} // Controla si el modal es visible usando el estado
-          // onRequestClose={() => {
-          //   // Podrías decidir si permitir cerrar este modal sin presionar Aceptar.
-          //   // Según tu requerimiento, los puntos se suman SOLO al presionar Aceptar,
-          //   // por lo que es mejor no permitir cerrar aquí con el botón de atrás.
-          //   // setPointsModalVisible(!isPointsModalVisible);
-          // }}
+          visible={isPointsModalVisible}
         >
           <View style={styles.centeredView}>
-            {" "}
-            {/* Contenedor para centrar el modal */}
             <View style={styles.modalView}>
-              {" "}
-              {/* El recuadro blanco del modal */}
               <Text style={styles.modalTitle}>¡Temporizador completado!</Text>
-              {/* Muestra los puntos que se guardaron en el estado sessionPointsEarned */}
               <Text style={styles.modalText}>
                 Has ganado: +{sessionPointsEarned} puntos
               </Text>
-              {/* Botón "Aceptar" para confirmar y guardar los puntos */}
               <Pressable
                 style={[styles.buttonModal, styles.buttonAccept]}
-                onPress={handleAcceptPoints} // Llama a la función que guarda los puntos en Firestore
+                onPress={handleAcceptPoints}
               >
                 <Text style={styles.textStyle}>Aceptar</Text>
               </Pressable>
             </View>
           </View>
         </Modal>
-
-        {/* --- Fin de la Implementación de los Modales --- */}
+        {/* -------------------MODALS (END)---------------------- */}
       </View>
     </View>
   );
 }
 
-// Estilos para los componentes
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     height: "100%",
-    backgroundColor: "#fff", // Fondo blanco para toda la pantalla
+    backgroundColor: "#fff",
     alignItems: "center",
-    justifyContent: "flex-start", // Alineamos al inicio verticalmente para dejar espacio al HeaderMenu
-    width: "100%", // Asegura que el contenedor ocupe todo el ancho
-    paddingTop: 80, // Añade un padding superior para dejar espacio al HeaderMenu (ajusta según la altura de tu HeaderMenu)
+    justifyContent: "flex-start",
+    width: "100%",
+    paddingTop: 80,
+  },
+  loadingContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
   },
   mainContainer: {
     width: "90%",
-    height: "90%", // Altura automática para adaptarse al contenido
-    minHeight: "60%", // Mínima altura para que se vea bien
+    height: "auto",
+    minHeight: "60%",
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
@@ -241,12 +215,21 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     borderColor: "#007AFF",
   },
-  // Estilos para los modales
+
+  adminMessage: {
+    marginTop: 0,
+    marginBottom: 20,
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#28a745",
+    textAlign: "center",
+  },
+
   centeredView: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)", // Fondo semi-transparente oscuro
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalView: {
     margin: 20,
@@ -275,30 +258,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   buttonModal: {
-    // Estilo base para los botones dentro de los modales
     borderRadius: 10,
     padding: 10,
     elevation: 2,
-    marginVertical: 5, // Espacio vertical entre botones del modal
-    width: 180, // Ancho fijo para los botones del modal
+    marginVertical: 5,
+    width: 180,
     alignItems: "center",
     justifyContent: "center",
   },
   buttonOption: {
-    // Estilo específico para los botones de opción de duración
-    backgroundColor: "#2196F3", // Azul para opciones
+    backgroundColor: "#2196F3",
   },
   buttonAccept: {
-    // Estilo específico para el botón Aceptar puntos
-    backgroundColor: "#4CAF50", // Verde para aceptar
+    backgroundColor: "#4CAF50",
   },
   buttonClose: {
-    // Estilo específico para el botón Cancelar
-    backgroundColor: "#FF6347", // Rojo/Naranja para cancelar
-    marginTop: 10, // Un poco más de espacio si es un botón de cancelar/cerrar
+    backgroundColor: "#FF6347",
+    marginTop: 10,
   },
   textStyle: {
-    // Estilo para el texto dentro de los botones del modal
     color: "white",
     fontWeight: "bold",
     textAlign: "center",
