@@ -34,9 +34,21 @@ export default function SidebarMenu() {
       console.log(`Ir a ${screen}`);
     }
     toggleMenu();
+    if (screen === "Tareas") {
+      router.push("/tasks");
+    } else {
+      console.log(`Ir a ${screen}`);
+    }
+    toggleMenu();
+    if (screen === "Logros") {
+      router.push("/achievements");
+    } else {
+      console.log(`Ir a ${screen}`);
+    }
+    toggleMenu();
   };
 
-  const menuOptions = ["Tienda", "Screen2", "Screen3", "Screen4"];
+  const menuOptions = ["Tienda", "Tareas", "Logros", "Screen4"];
 
   return (
     <>

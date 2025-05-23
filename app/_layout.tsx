@@ -5,10 +5,10 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext"; // Importa el Pr
 
 // Componente que decide qué Stack renderizar basado en el contexto
 function RootLayoutContent() {
-  const { user, isAuthLoading } = useAuth(); // Lee el estado del contexto
+  const { user, isLoading } = useAuth(); // Lee el estado del contexto
 
   // Muestra indicador de carga mientras se verifica el estado inicial de auth
-  if (isAuthLoading) {
+  if (isLoading) {
     console.log(
       "RootLayoutContent - Mostrando pantalla de carga (desde contexto)..."
     );
