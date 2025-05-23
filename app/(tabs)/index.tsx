@@ -1,4 +1,5 @@
 import CountdownTimer from "@/components/ui/CountdownTimer";
+import { useRouter } from "expo-router";
 import { doc, increment, updateDoc } from "firebase/firestore";
 import React, { useState } from "react";
 import {
@@ -8,6 +9,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -39,6 +41,12 @@ export default function HomeScreen() {
     setSessionPointsEarned(pointsEarned);
     setPointsModalVisible(true);
     setSelectedDurationSeconds(null); // reset para sacar button de programar sesion
+  };
+
+  const router = useRouter();
+
+  const handleNavigation = () => {
+    router.push("/(admin)/console");
   };
 
   // funcionalidade de modal de programar sesion
@@ -103,10 +111,18 @@ export default function HomeScreen() {
     <View style={styles.container}>
       {/* -------------------logica mensaxe admin----------- */}
       {isAdmin && (
-        <Text style={styles.adminMessage}>
-          🎉 ¡Bienvenido administrador! 🎉
-        </Text>
+        <Text style={styles.adminMessage}>Bienvenido administrador.</Text>
       )}
+
+      {isAdmin && (
+        <TouchableOpacity
+          style={styles.adminButton}
+          onPress={() => handleNavigation()}
+        >
+          <Text style={styles.adminButtonText}>Consola</Text>
+        </TouchableOpacity>
+      )}
+
       <View style={styles.mainContainer}>
         {/* mostrar el botón "Programar sesion" OR timer */}
         {!selectedDurationSeconds ? (
@@ -280,5 +296,20 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
     textAlign: "center",
+  },
+  adminButton: {
+    backgroundColor: "#007AFF", // Un color distintivo, puedes usar #007AFF o elegir otro
+    paddingVertical: 12, // Espacio vertical dentro del botón
+    paddingHorizontal: 20, // Espacio horizontal dentro del botón
+    borderRadius: 8, // Bordes redondeados
+    alignItems: "center", // Centra el texto horizontalmente
+    justifyContent: "center", // Centra el texto verticalmente
+    marginBottom: 5,
+  },
+  // !!! NUEVO ESTILO PARA EL TEXTO DEL BOTON ADMIN !!!
+  adminButtonText: {
+    color: "white", // Color del texto para que contraste con el fondo del botón
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
